@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>外贸装箱单生成工具 | 专业打印版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #e9ecef;
+            font-family: 'Segoe UI', 'Roboto', 'Times New Roman', Times, serif;
+            padding: 30px 20px;
+            color: #1e2a3e;
+        }
+
+        .app-container {
+            max-width: 1280px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .toolbar {
+            background: #f8f9fc;
+            padding: 16px 24px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 8px 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 40px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: white;
+            color: #2c3e66;
+            border: 1px solid #bac8dc;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: #1e466e;
+            color: white;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .btn-primary:hover {
+            background: #0f2e4a;
+            transform: translateY(-1px);
+        }
+
+        .btn-outline:hover {
+            background: #eef2f7;
+            border-color: #8ba0bc;
+        }
+
+        .btn-print {
+            background: #2c6e2c;
+            color: white;
+            border: none;
+        }
+
+        .btn-print:hover {
+            background: #1e551e;
+        }
+
+        /* 历史记录模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: white;
+            width: 550px;
+            max-width: 90%;
+            max-height: 80vh;
+            border-radius: 24px;
+            box-shadow: 0 20px 35px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: fadeInUp 0.2s ease;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px);}
+            to { opacity: 1; transform: translateY(0);}
+        }
+        .modal-header {
+            padding: 18px 24px;
+            background: #f8fafd;
+            border-bottom: 1px solid #e2edf2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h3 {
+            font-size: 1.25rem;
+            color: #1e466e;
+            font-weight: 600;
+        }
+        .close-modal {
+            font-size: 26px;
+            cursor: pointer;
+            color: #7e95b0;
+            transition: 0.2s;
+        }
+        .close-modal:hover { color: #b91c1c; }
+        .modal-body {
+            padding: 16px 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .history-record-item {
+            background: #fefefe;
+            border: 1px solid #e6edf4;
+            border-radius: 18px;
+            padding: 14px 16px;
+            margin-bottom: 14px;
+            transition: all 0.1s;
+            cursor: pointer;
+        }
+        .history-record-item:hover {
+            background: #f0f7ff;
+            border-color: #bdd4ec;
+            transform: translateX(2px);
+        }
+        .record-title {
+            font-weight: 700;
+            color: #0a2f44;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            border-left: 3px solid #1e466e;
+            padding-left: 10px;
+        }
+        .record-detail {
+            font-size: 0.75rem;
+            color: #4b6f8e;
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        .record-detail span {
+            background: #f1f5f9;
+            padding: 3px 10px;
+            border-radius: 20px;
+        }
+        .record-time {
+            font-size: 0.7rem;
+            color: #8aa0b8;
+            text-align: right;
+            margin-top: 8px;
+        }
+        .empty-history {
+            text-align: center;
+            padding: 40px 20px;
+            color: #8aa0b8;
+        }
+        .modal-footer {
+            padding: 12px 20px;
+            border-top: 1px solid #eef2f8;
+            background: #fafcff;
+            font-size: 0.7rem;
+            color: #5f7f9e;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .clear-history-modal {
+            color: #b91c1c;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .clear-history-modal:hover { text-decoration: underline; }
+
+        .form-editor {
+            padding: 28px 30px;
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            border-left: 5px solid #1e466e;
+            padding-left: 14px;
+            margin-bottom: 20px;
+            color: #0b2b42;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 28px;
+            margin-bottom: 30px;
+        }
+
+        .info-card {
+            background: #fefefe;
+            border: 1px solid #e2edf2;
+            border-radius: 20px;
+            padding: 18px 20px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+        }
+
+        .info-card h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1e466e;
+            margin-bottom: 14px;
+            border-bottom: 1px dashed #cbdde9;
+            padding-bottom: 8px;
+        }
+
+        .field {
+            margin-bottom: 14px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .field label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #5b6f8c;
+            margin-bottom: 4px;
+        }
+
+        .field input, .field textarea {
+            padding: 10px 12px;
+            border: 1px solid #cfdfed;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            transition: 0.2s;
+            background: #fff;
+        }
+
+        .field input:focus, .field textarea:focus {
+            outline: none;
+            border-color: #1e466e;
+            box-shadow: 0 0 0 2px rgba(30,70,110,0.1);
+        }
+        .field input[readonly] {
+            background-color: #f4f7fb;
+            cursor: default;
+            border-color: #dce5ef;
+        }
+
+        .row-fields {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px,1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .goods-section {
+            margin-top: 20px;
+        }
+
+        .goods-table-wrapper {
+            overflow-x: auto;
+            border-radius: 16px;
+            border: 1px solid #e9edf2;
+            background: white;
+            margin-bottom: 16px;
+        }
+
+        .goods-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            min-width: 1100px;
+        }
+
+        .goods-table th {
+            background: #f1f5f9;
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: 700;
+            color: #1e3a5f;
+            border-bottom: 1px solid #dce5ef;
+            font-size: 0.75rem;
+            letter-spacing: 0.3px;
+        }
+
+        .goods-table td {
+            padding: 10px 6px;
+            border-bottom: 1px solid #eef2f6;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .goods-table input, .goods-table select {
+            width: 100%;
+            min-width: 70px;
+            padding: 8px 6px;
+            border: 1px solid #cddfea;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+        .qty-unit-group {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .qty-unit-group input {
+            flex: 2;
+            min-width: 70px;
+        }
+        .qty-unit-group select {
+            flex: 1;
+            min-width: 65px;
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: #b91c1c;
+            font-weight: bold;
+            padding: 4px 8px;
+            border-radius: 20px;
+        }
+
+        .action-btn.add-row {
+            color: #1e6f3f;
+            background: #e9f5ef;
+            font-size: 0.8rem;
+            padding: 6px 14px;
+        }
+
+        .extra-fields {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            margin-top: 20px;
+            align-items: flex-end;
+        }
+
+        .extra-item {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .generate-button-wrapper {
+            margin-top: 24px;
+            text-align: right;
+        }
+
+        .preview-area {
+            background: #fefefe;
+            padding: 32px 36px;
+            border-top: 2px solid #dce5f0;
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .preview-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e3a5f;
+            letter-spacing: 2px;
+        }
+
+        /* 专业装箱单样式 - 标题更黑，正文稍浅 */
+        .packing-list-card {
+            background: white;
+            padding: 28px 30px;
+            font-family: 'Times New Roman', Times, serif;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .pl-title {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 900;          /* 更粗更黑 */
+            letter-spacing: 2px;
+            margin-bottom: 24px;
+            text-transform: uppercase;
+            border-bottom: none;
+            display: inline-block;
+            width: auto;
+            padding-bottom: 0;
+            color: #000000;            /* 纯黑 */
+        }
+
+        .pl-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .pl-exporter, .pl-importer {
+            width: 48%;
+            font-size: 12px;
+            line-height: 1.5;
+            color: #3a3a3a;           /* 深灰，比标题浅 */
+        }
+        .pl-exporter strong, .pl-importer strong {
+            font-size: 13px;
+            font-weight: 700;
+            display: block;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #2c2c2c;           /* 标签稍微深一点但仍比标题浅 */
+        }
+
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 18px 0;
+            font-size: 12px;
+            border: 1px solid #000;
+            color: #3a3a3a;
+        }
+        .info-table td, .info-table th {
+            border: 1px solid #000;
+            padding: 8px 12px;
+            vertical-align: top;
+        }
+        .info-table td:first-child {
+            font-weight: 600;
+            width: 35%;
+            background-color: #f9fafb;
+            color: #2c2c2c;
+        }
+
+        .lc-section {
+            margin: 12px 0;
+            font-size: 12px;
+            font-weight: 500;
+            border: 1px solid #000;
+            padding: 8px 12px;
+            background: #fefef5;
+            color: #3a3a3a;
+        }
+
+        .goods-table-final {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 11px;
+            color: #3a3a3a;
+        }
+        .goods-table-final th, .goods-table-final td {
+            border: 1px solid #000;
+            padding: 10px 8px;
+            text-align: center;
+            vertical-align: top;
+        }
+        .goods-table-final th {
+            background: #f0f3f8;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 11px;
+            color: #2c2c2c;
+        }
+        .goods-table-final td:first-child {
+            text-align: left;
+        }
+
+        .total-amount {
+            margin: 20px 0;
+            text-align: right;
+            font-size: 12px;
+            font-weight: 600;
+            border-top: 1px solid #333;
+            padding-top: 12px;
+            color: #3a3a3a;
+        }
+
+        .signature-area {
+            margin-top: 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            font-size: 12px;
+            border-top: 1px solid #ccc;
+            padding-top: 20px;
+            color: #3a3a3a;
+        }
+
+        @media print {
+            body { background: white; padding: 0; margin: 0; }
+            .toolbar, .form-editor, .preview-header, .btn-group, .btn, .btn-print, .generate-button-wrapper { display: none !important; }
+            .preview-area { padding: 0 !important; margin: 0 !important; }
+            .packing-list-card { padding: 0.3in !important; max-width: 100%; }
+            .packing-list-card, .packing-list-card * { font-size: 24px !important; }
+            .pl-title { font-size: 44px !important; font-weight: 900 !important; border-bottom: none !important; margin-bottom: 30px; color: #000 !important; }
+            .pl-exporter, .pl-importer { color: #4a4a4a !important; }
+            .pl-exporter strong, .pl-importer strong { color: #3a3a3a !important; }
+            .info-table td, .info-table th { padding: 14px 18px !important; }
+            .goods-table-final th, .goods-table-final td { padding: 16px 12px !important; }
+            .goods-table-final th { font-size: 22px !important; }
+            .total-amount { font-size: 24px !important; }
+            .signature-area { font-size: 22px !important; }
+            .info-table, .info-table td, .info-table th,
+            .lc-section, .goods-table-final, .goods-table-final th, .goods-table-final td { border: 1px solid #000 !important; }
+        }
+
+        .note {
+            font-size: 0.7rem;
+            color: #6f8faa;
+            text-align: right;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="toolbar">
+        <div style="font-weight: 600; color: #1e466e;">📄 装箱单 PACKING LIST 生成器</div>
+        <div class="btn-group">
+            <button class="btn btn-outline" id="historyModalBtn">📜 历史记忆</button>
+            <button class="btn btn-print" id="printPLBtn">🖨️ 打印 / 导出PDF</button>
+        </div>
+    </div>
+
+    <!-- 历史记录模态框 -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3>📋 单据制作记录</h3><span class="close-modal">&times;</span></div>
+            <div class="modal-body" id="historyModalBody"></div>
+            <div class="modal-footer"><span>点击任意记录，一键复用出口商/进口商信息</span><span class="clear-history-modal" id="clearHistoryFromModal">🗑️ 清除全部历史</span></div>
+        </div>
+    </div>
+
+    <!-- 表单编辑区 -->
+    <div class="form-editor">
+        <div class="section-title">📋 单据信息（带*为自动生成）</div>
+        <div class="row-fields">
+            <div class="field"><label>📅 P/L DATE</label><input type="date" id="plDatePicker"></div>
+            <div class="field"><label>🧾 INVOICE NO. (自动)</label><input type="text" id="invoiceNo" readonly></div>
+            <div class="field"><label>📆 INVOICE DATE (自动)</label><input type="text" id="invoiceDate" readonly></div>
+            <div class="field"><label>📑 CONTRACT NO. (自动)</label><input type="text" id="contractNo" readonly></div>
+            <div class="field"><label>💳 Letter of Credit No.</label><input type="text" id="lcNo" value="SUE2497"></div>
+        </div>
+
+        <div class="info-grid">
+            <div class="info-card"><h3>出口商 EXPORTER</h3><textarea id="exporter" rows="3">XXXX electronic technology co., LTD,
+66X9,Wenyi Road,Hangzhou, China
+13688888888</textarea></div>
+            <div class="info-card"><h3>进口商 IMPORTER</h3><textarea id="importer" rows="3">Datung Trading Co., LTD
+No. 549 Avenue 3, San Francisco, California, USA.
+13688888888</textarea></div>
+        </div>
+
+        <div class="goods-section">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                <span style="font-weight: 600;">📦 货物明细 (数量、包装、重量单位均可选)</span>
+                <button type="button" class="action-btn add-row" id="addGoodsRowBtn">+ 添加商品行</button>
+            </div>
+            <div class="goods-table-wrapper">
+                <table class="goods-table" id="goodsTable">
+                    <thead>
+                        <tr><th>Description</th><th>Quantity (数值+单位)</th><th>Package (数值+单位)</th><th>G.W (数值+单位)</th><th>N.W (数值+单位)</th><th>Meas.</th><th>操作</th></tr>
+                    </thead>
+                    <tbody id="goodsTbody"></tbody>
+                </table>
+            </div>
+            <div class="extra-fields">
+                <div class="extra-item"><label>💰 Total amount (文字描述)</label><input type="text" id="totalAmountDesc" value="FIFTY THOUSAND SETS (50,000 Sets)"></div>
+                <div class="extra-item"><label>🖊️ Exporter stamp & signature</label><input type="text" id="signatureText" value="W · Aristoph"></div>
+            </div>
+            <div class="generate-button-wrapper"><button class="btn btn-primary" id="generatePreviewBtn">✨ 生成装箱单(P/L)</button></div>
+            <div class="note">提示：标题为纯黑加粗，正文使用深灰色，层次分明；所有单位支持下拉选择。</div>
+        </div>
+    </div>
+
+    <div class="preview-area">
+        <div class="preview-header"><h2>📄 PACKING LIST</h2><span style="font-size:0.7rem;">正式打印版本</span></div>
+        <div id="plPreviewContainer" class="packing-list-card"><div style="text-align:center; color:#aaa; padding:40px;">✨ 点击「生成装箱单」生成专业单据</div></div>
+    </div>
+</div>
+
+<script>
+    // 历史记忆
+    const STORAGE_KEY = "packinglist_history_v8";
+    const MAX_HISTORY = 20;
+    function getHistory() { const raw = localStorage.getItem(STORAGE_KEY); try { return raw ? JSON.parse(raw) : []; } catch(e) { return []; } }
+    function saveHistoryEntry(exporter, importer) {
+        if (!exporter.trim() || !importer.trim()) return;
+        let history = getHistory();
+        const preview = `${exporter.split('\n')[0].substring(0,45)} | ${importer.split('\n')[0].substring(0,45)}`;
+        const existing = history.findIndex(e => e.exporter === exporter && e.importer === importer);
+        const newEntry = { exporter, importer, timestamp: Date.now(), preview };
+        if (existing !== -1) history.splice(existing, 1);
+        history.unshift(newEntry);
+        if (history.length > MAX_HISTORY) history.pop();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+        renderModalHistory();
+    }
+    function renderModalHistory() {
+        const history = getHistory();
+        const container = document.getElementById('historyModalBody');
+        if (!container) return;
+        if (!history.length) { container.innerHTML = `<div class="empty-history">暂无历史记录<br>生成后自动保存</div>`; return; }
+        let html = '';
+        history.forEach((item, idx) => {
+            const date = new Date(item.timestamp);
+            const dateStr = `${date.toLocaleDateString()} ${date.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`;
+            html += `<div class="history-record-item" data-idx="${idx}"><div class="record-title">📄 记录 #${history.length-idx}</div><div class="record-detail"><span>🏭 ${escapeHtml(item.exporter.split('\n')[0].substring(0,40))}</span><span>🏢 ${escapeHtml(item.importer.split('\n')[0].substring(0,40))}</span></div><div class="record-time">${dateStr}</div></div>`;
+        });
+        container.innerHTML = html;
+        document.querySelectorAll('.history-record-item').forEach(el => {
+            el.addEventListener('click', () => {
+                const idx = parseInt(el.dataset.idx);
+                const entry = history[idx];
+                if (entry) { document.getElementById('exporter').value = entry.exporter; document.getElementById('importer').value = entry.importer; closeModal(); showToast('已复用历史信息'); }
+            });
+        });
+    }
+    function clearAllHistory() { if(confirm('清除所有历史记录？')){ localStorage.removeItem(STORAGE_KEY); renderModalHistory(); showToast('已清空'); } }
+    const modal = document.getElementById('historyModal');
+    function openModal() { renderModalHistory(); modal.style.display = 'flex'; }
+    function closeModal() { modal.style.display = 'none'; }
+    function showToast(msg) { const d=document.createElement('div'); d.textContent=msg; d.style.cssText='position:fixed;bottom:20px;right:20px;background:#1e466e;color:#fff;padding:8px 18px;border-radius:40px;z-index:1001'; document.body.appendChild(d); setTimeout(()=>d.remove(),2000); }
+
+    // 自动编号
+    function generateInvoiceNo() { const d=new Date(); return `INV-${d.getFullYear()}${(d.getMonth()+1).toString().padStart(2,'0')}${d.getDate().toString().padStart(2,'0')}-${Math.floor(Math.random()*1000).toString().padStart(3,'0')}`; }
+    function generateContractNo() { const d=new Date(); return `CT-${d.getFullYear()}${(d.getMonth()+1).toString().padStart(2,'0')}${d.getDate().toString().padStart(2,'0')}-${Math.floor(Math.random()*900+100)}`; }
+    function getTodayStr() { const d=new Date(); return `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getDate().toString().padStart(2,'0')}`; }
+    function refreshAutoFields() { document.getElementById('invoiceNo').value = generateInvoiceNo(); document.getElementById('contractNo').value = generateContractNo(); document.getElementById('invoiceDate').value = getTodayStr(); }
+    function initPlDatePicker() { const picker = document.getElementById('plDatePicker'); if(picker) picker.value = getTodayStr(); }
+
+    // 单位选项库
+    const unitOptions = ["SETS","PCS","CTNS","UNITS","ROLLS","PAIRS","BOXES","CARTONS"];
+    const weightUnitOptions = ["kg", "g", "lb", "oz", "ton"];
+    const packageUnitOptions = ["CTNS", "PCS", "BOXES", "PALLETS", "ROLLS", "BUNDLES", "SETS"];
+
+    let goodsRows = [];
+    const defaultGoods = {
+        description: "West Lake Color TV sets,25 inches",
+        qtyValue: "50000", qtyUnit: "SETS",
+        pkgValue: "500", pkgUnit: "CTNS",
+        gwValue: "125000", gwUnit: "kg",
+        nwValue: "118000", nwUnit: "kg",
+        meas: "25 inches (each)"
+    };
+
+    function syncGoodsFromDOM() {
+        const tbody = document.getElementById('goodsTbody');
+        if(!tbody) return;
+        const rows = tbody.querySelectorAll('tr');
+        const newRows = [];
+        rows.forEach(row => {
+            const desc = row.querySelector('td:first-child input')?.value || '';
+            const qtyGroup = row.querySelector('.qty-unit-group');
+            const qtyVal = qtyGroup?.querySelector('input')?.value || '';
+            const qtyUnit = qtyGroup?.querySelector('select')?.value || '';
+            const pkgGroup = row.querySelector('.pkg-unit-group');
+            const pkgVal = pkgGroup?.querySelector('input')?.value || '';
+            const pkgUnit = pkgGroup?.querySelector('select')?.value || '';
+            const gwGroup = row.querySelector('.gw-unit-group');
+            const gwVal = gwGroup?.querySelector('input')?.value || '';
+            const gwUnit = gwGroup?.querySelector('select')?.value || '';
+            const nwGroup = row.querySelector('.nw-unit-group');
+            const nwVal = nwGroup?.querySelector('input')?.value || '';
+            const nwUnit = nwGroup?.querySelector('select')?.value || '';
+            const meas = row.querySelector('td:nth-child(6) input')?.value || '';
+            newRows.push({ description: desc, qtyValue: qtyVal, qtyUnit, pkgValue: pkgVal, pkgUnit, gwValue: gwVal, gwUnit, nwValue: nwVal, nwUnit, meas });
+        });
+        if(newRows.length) goodsRows = newRows;
+    }
+
+    function renderGoodsTable() {
+        const tbody = document.getElementById('goodsTbody');
+        if(!tbody) return;
+        tbody.innerHTML = '';
+        if(!goodsRows.length) goodsRows.push({...defaultGoods});
+        goodsRows.forEach((row,idx) => {
+            const tr = document.createElement('tr');
+            // 描述
+            const descCell = document.createElement('td');
+            const descInput = document.createElement('input');
+            descInput.type = 'text'; descInput.value = row.description; descInput.setAttribute('data-idx', idx); descInput.setAttribute('data-field', 'description');
+            descCell.appendChild(descInput);
+            // 数量
+            const qtyCell = document.createElement('td');
+            const qtyDiv = document.createElement('div'); qtyDiv.className = 'qty-unit-group';
+            const qtyValInp = document.createElement('input'); qtyValInp.type = 'text'; qtyValInp.value = row.qtyValue; qtyValInp.setAttribute('data-idx', idx); qtyValInp.setAttribute('data-field', 'qtyValue');
+            const qtyUnitSel = document.createElement('select'); qtyUnitSel.setAttribute('data-idx', idx); qtyUnitSel.setAttribute('data-field', 'qtyUnit');
+            unitOptions.forEach(u => { const opt = document.createElement('option'); opt.value = u; opt.textContent = u; if(row.qtyUnit === u) opt.selected = true; qtyUnitSel.appendChild(opt); });
+            qtyDiv.appendChild(qtyValInp); qtyDiv.appendChild(qtyUnitSel); qtyCell.appendChild(qtyDiv);
+            // 包装
+            const pkgCell = document.createElement('td');
+            const pkgDiv = document.createElement('div'); pkgDiv.className = 'pkg-unit-group'; pkgDiv.style.display = 'flex'; pkgDiv.style.gap = '6px';
+            const pkgValInp = document.createElement('input'); pkgValInp.type = 'text'; pkgValInp.value = row.pkgValue || ''; pkgValInp.setAttribute('data-idx', idx); pkgValInp.setAttribute('data-field', 'pkgValue');
+            const pkgUnitSel = document.createElement('select'); pkgUnitSel.setAttribute('data-idx', idx); pkgUnitSel.setAttribute('data-field', 'pkgUnit');
+            packageUnitOptions.forEach(u => { const opt = document.createElement('option'); opt.value = u; opt.textContent = u; if(row.pkgUnit === u) opt.selected = true; pkgUnitSel.appendChild(opt); });
+            pkgDiv.appendChild(pkgValInp); pkgDiv.appendChild(pkgUnitSel); pkgCell.appendChild(pkgDiv);
+            // G.W
+            const gwCell = document.createElement('td');
+            const gwDiv = document.createElement('div'); gwDiv.className = 'gw-unit-group'; gwDiv.style.display = 'flex'; gwDiv.style.gap = '6px';
+            const gwValInp = document.createElement('input'); gwValInp.type = 'text'; gwValInp.value = row.gwValue || ''; gwValInp.setAttribute('data-idx', idx); gwValInp.setAttribute('data-field', 'gwValue');
+            const gwUnitSel = document.createElement('select'); gwUnitSel.setAttribute('data-idx', idx); gwUnitSel.setAttribute('data-field', 'gwUnit');
+            weightUnitOptions.forEach(u => { const opt = document.createElement('option'); opt.value = u; opt.textContent = u; if(row.gwUnit === u) opt.selected = true; gwUnitSel.appendChild(opt); });
+            gwDiv.appendChild(gwValInp); gwDiv.appendChild(gwUnitSel); gwCell.appendChild(gwDiv);
+            // N.W
+            const nwCell = document.createElement('td');
+            const nwDiv = document.createElement('div'); nwDiv.className = 'nw-unit-group'; nwDiv.style.display = 'flex'; nwDiv.style.gap = '6px';
+            const nwValInp = document.createElement('input'); nwValInp.type = 'text'; nwValInp.value = row.nwValue || ''; nwValInp.setAttribute('data-idx', idx); nwValInp.setAttribute('data-field', 'nwValue');
+            const nwUnitSel = document.createElement('select'); nwUnitSel.setAttribute('data-idx', idx); nwUnitSel.setAttribute('data-field', 'nwUnit');
+            weightUnitOptions.forEach(u => { const opt = document.createElement('option'); opt.value = u; opt.textContent = u; if(row.nwUnit === u) opt.selected = true; nwUnitSel.appendChild(opt); });
+            nwDiv.appendChild(nwValInp); nwDiv.appendChild(nwUnitSel); nwCell.appendChild(nwDiv);
+            // Meas
+            const measCell = document.createElement('td');
+            const measInput = document.createElement('input'); measInput.type = 'text'; measInput.value = row.meas; measInput.setAttribute('data-idx', idx); measInput.setAttribute('data-field', 'meas');
+            measCell.appendChild(measInput);
+            // 删除按钮
+            const delCell = document.createElement('td');
+            const delBtn = document.createElement('button'); delBtn.textContent = '✖'; delBtn.className = 'action-btn'; delBtn.setAttribute('data-delidx', idx);
+            delCell.appendChild(delBtn);
+            tr.appendChild(descCell); tr.appendChild(qtyCell); tr.appendChild(pkgCell); tr.appendChild(gwCell); tr.appendChild(nwCell); tr.appendChild(measCell); tr.appendChild(delCell);
+            tbody.appendChild(tr);
+        });
+        document.querySelectorAll('#goodsTbody input, #goodsTbody select').forEach(el => el.addEventListener('change', (e) => { const idx=parseInt(e.target.dataset.idx), field=e.target.dataset.field; if(!isNaN(idx) && goodsRows[idx] && field) goodsRows[idx][field]=e.target.value; }));
+        document.querySelectorAll('#goodsTbody .action-btn').forEach(btn => btn.addEventListener('click', (e) => { const idx=parseInt(btn.dataset.delidx); if(goodsRows.length>1){ goodsRows.splice(idx,1); renderGoodsTable(); } else alert('至少保留一行'); }));
+    }
+    function addGoodsRow() { goodsRows.push({ description:"New Item", qtyValue:"1", qtyUnit:"PCS", pkgValue:"", pkgUnit:"CTNS", gwValue:"", gwUnit:"kg", nwValue:"", nwUnit:"kg", meas:"" }); renderGoodsTable(); }
+
+    function getBaseData() {
+        return {
+            exporter: document.getElementById('exporter').value.trim(),
+            importer: document.getElementById('importer').value.trim(),
+            plDate: document.getElementById('plDatePicker').value,
+            invoiceNo: document.getElementById('invoiceNo').value,
+            invoiceDate: document.getElementById('invoiceDate').value,
+            contractNo: document.getElementById('contractNo').value,
+            lcNo: document.getElementById('lcNo').value.trim(),
+            totalAmountDesc: document.getElementById('totalAmountDesc').value,
+            signature: document.getElementById('signatureText').value
+        };
+    }
+
+    function computeTotals(goods) {
+        let totalQty=0, totalGW=0, totalNW=0;
+        goods.forEach(g=>{ let q=parseFloat(g.qtyValue.replace(/[^0-9.-]/g,'')); if(!isNaN(q)) totalQty+=q; let gwv=parseFloat(g.gwValue.replace(/[^0-9.-]/g,'')); if(!isNaN(gwv)) totalGW+=gwv; let nwv=parseFloat(g.nwValue.replace(/[^0-9.-]/g,'')); if(!isNaN(nwv)) totalNW+=nwv; });
+        return { totalQty: totalQty.toLocaleString() + " units", totalGW: totalGW.toFixed(2)+" kg (eq)", totalNW: totalNW.toFixed(2)+" kg (eq)" };
+    }
+
+    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+
+    function generateProfessionalPL() {
+        const base = getBaseData();
+        syncGoodsFromDOM();
+        if(!goodsRows.length) goodsRows.push({...defaultGoods});
+        const goods = [...goodsRows];
+        const totals = computeTotals(goods);
+        let goodsRowsHtml = '';
+        goods.forEach(item => {
+            const qtyDisplay = `${item.qtyValue || '0'} ${item.qtyUnit || ''}`;
+            const pkgDisplay = `${item.pkgValue || ''} ${item.pkgUnit || ''}`.trim() || '-';
+            const gwDisplay = `${item.gwValue || ''} ${item.gwUnit || ''}`.trim() || '-';
+            const nwDisplay = `${item.nwValue || ''} ${item.nwUnit || ''}`.trim() || '-';
+            goodsRowsHtml += `<tr><td style="text-align:left">${escapeHtml(item.description || '-')}</td>
+                              <td>${escapeHtml(qtyDisplay)}</td>
+                              <td>${escapeHtml(pkgDisplay)}</td>
+                              <td>${escapeHtml(gwDisplay)}</td>
+                              <td>${escapeHtml(nwDisplay)}</td>
+                              <td>${escapeHtml(item.meas || '-')}</td>
+                            </tr>`;
+        });
+        goodsRowsHtml += `<tr style="background:#f4f2e9; font-weight:bold;"><td style="text-align:right"><strong>TOTAL:</strong></td>
+                          <td><strong>${totals.totalQty}</strong></td><td>-</td>
+                          <td><strong>${totals.totalGW}</strong></td>
+                          <td><strong>${totals.totalNW}</strong></td><td>-</td>
+                        </table>`;
+        return `<div style="text-align:center; margin-bottom:20px;"><div class="pl-title">PACKING LIST</div></div>
+                <div class="pl-header"><div class="pl-exporter"><strong>EXPORTER</strong><br>${escapeHtml(base.exporter).replace(/\n/g,'<br>')}</div><div class="pl-importer"><strong>IMPORTER</strong><br>${escapeHtml(base.importer).replace(/\n/g,'<br>')}</div></div>
+                <table class="info-table"><tr><td>P/L DATE:</td><td>${escapeHtml(base.plDate)}</td></tr>
+                                           <tr><td>INVOICE NO.:</td><td>${escapeHtml(base.invoiceNo)}</td></tr>
+                                           <tr><td>INVOICE DATE:</td><td>${escapeHtml(base.invoiceDate)}</td></tr>
+                                           <tr><td>CONTRACT NO.:</td><td>${escapeHtml(base.contractNo)}</td></tr>
+                </table>
+                <div class="lc-section"><strong>Letter of Credit No.:</strong> ${escapeHtml(base.lcNo)}</div>
+                <table class="goods-table-final"><thead><tr><th>Description of goods; Commodity No.</th><th>Quantity</th><th>Package</th><th>G.W</th><th>N.W</th><th>Meas.</th></tr></thead><tbody>${goodsRowsHtml}</tbody></table>
+                <div class="total-amount"><strong>Total amount:</strong> ${escapeHtml(base.totalAmountDesc)}</div>
+                <div class="signature-area"><div></div><div><strong>Exporter stamp and signature</strong><br>${escapeHtml(base.signature)}</div></div>
+                <div style="font-size:9px; text-align:right; margin-top:12px; color:#666;">Generated by P/L System • 正式装箱单</div>`;
+    }
+
+    function updatePreview() { document.getElementById('plPreviewContainer').innerHTML = generateProfessionalPL(); }
+    function onGenerate() { syncGoodsFromDOM(); refreshAutoFields(); const exporter = document.getElementById('exporter').value.trim(); const importer = document.getElementById('importer').value.trim(); if(exporter && importer) saveHistoryEntry(exporter, importer); updatePreview(); showToast("✅ 装箱单已生成，历史已保存"); }
+    function printPL() {
+        const content = document.getElementById('plPreviewContainer').innerHTML;
+        if(!content || content.includes("点击「生成装箱单」")) { alert("请先生成装箱单"); return; }
+        const win = window.open('', '_blank');
+        if(!win) { alert("请允许弹出窗口"); return; }
+        win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Packing List 装箱单</title><style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'Times New Roman',Times,serif;padding:0.3in;background:white;}.packing-list-card{max-width:1100px;margin:0 auto;}.packing-list-card,.packing-list-card *{font-size:24px !important;}.pl-title{font-size:44px !important;font-weight:900 !important;border-bottom:none !important;text-align:center;margin-bottom:30px;color:#000 !important;}.pl-exporter,.pl-importer{color:#4a4a4a !important;}.pl-exporter strong,.pl-importer strong{color:#3a3a3a !important;}.info-table td,.info-table th{padding:14px 18px !important;}.goods-table-final th,.goods-table-final td{padding:16px 12px !important;}.goods-table-final th{font-size:22px !important;}.total-amount{font-size:24px !important;}.signature-area{font-size:22px !important;}.pl-header{display:flex;justify-content:space-between;margin-bottom:32px;gap:30px;}.pl-exporter,.pl-importer{width:48%;line-height:1.5;}.info-table{width:100%;border-collapse:collapse;margin:24px 0;border:1px solid #000;}.info-table td{border:1px solid #000;}.lc-section{border:1px solid #000;padding:12px 16px;margin:20px 0;background:#fefef5;}.goods-table-final{width:100%;border-collapse:collapse;margin:28px 0;}.goods-table-final th,.goods-table-final td{border:1px solid #000;text-align:center;vertical-align:top;}.goods-table-final td:first-child{text-align:left;}.total-amount{text-align:right;border-top:2px solid #333;padding-top:16px;margin-top:24px;}.signature-area{display:flex;justify-content:space-between;margin-top:48px;border-top:1px solid #ccc;padding-top:28px;}@media print{body{padding:0;}}</style></head><body><div class="packing-list-card">${content}</div></body></html>`);
+        win.document.close(); win.print();
+    }
+
+    function init() {
+        initPlDatePicker(); refreshAutoFields(); goodsRows = [{...defaultGoods}]; renderGoodsTable();
+        document.getElementById('generatePreviewBtn').addEventListener('click', onGenerate);
+        document.getElementById('printPLBtn').addEventListener('click', printPL);
+        document.getElementById('addGoodsRowBtn').addEventListener('click', addGoodsRow);
+        document.getElementById('historyModalBtn').addEventListener('click', openModal);
+        document.querySelector('.close-modal').addEventListener('click', closeModal);
+        document.getElementById('clearHistoryFromModal').addEventListener('click', clearAllHistory);
+        window.addEventListener('click', (e) => { if(e.target === modal) closeModal(); });
+        updatePreview();
+    }
+    init();
+</script>
+</body>
+</html>
